@@ -5,12 +5,22 @@ __pycache__/
 venv/
 
 # Relatórios gerados (podem ser recriados a partir dos dados)
-/saude/bioimpedancias/relatorios/
+/saude/bioimpedancia/relatorios/
 
-# Backup local da migração (não versionar)
+# Rascunhos: temporários, só o README é versionado
+/rascunhos/*
+!/rascunhos/README.md
+
+# Material local de migração (não versionar)
 /_backup/
+/OLD/
 
-# Chaves de criptografia: NUNCA no repositório
+# Segredos e chaves: NUNCA no repositório
+.env
+*.env
+auth.json
+*token*
+*secret*
 *.key
 *git-crypt*key*
 
@@ -19,14 +29,17 @@ venv/
 Thumbs.db
 *.swp
 *~
+*.tmp
+*.log
 .vscode/
 .idea/
 
 # >>> dados-sensiveis — bloco TEMPORÁRIO, removido por scripts/ativar-criptografia.sh
-# Impede que dados pessoais entrem no Git antes de a criptografia existir.
+# Impede que qualquer conteúdo pessoal entre no Git antes de a criptografia existir.
+/SOUL.md
+/base/
+/config/
 /saude/
 /estudo/
-/MEMORY.md
-/CONTEXTO.md
-/MAPA.md
+/rascunhos/README.md
 # <<< dados-sensiveis

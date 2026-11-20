@@ -6,7 +6,7 @@ Uso:
   bioimpedancia.py validar
 
 O JSON pode ser um objeto (um exame) ou uma lista de objetos. Chaves = colunas do CSV.
-CSV padrão: $SAUDE_DIR/bioimpedancias/bioimpedancias.csv (SAUDE_DIR padrão: /srv/hermes/saude).
+CSV padrão: $SAUDE_DIR/bioimpedancia/bioimpedancias.csv (SAUDE_DIR padrão: /srv/hermes/saude).
 Use --csv para outro arquivo. Só biblioteca padrão.
 
 Saídas por exame: INSERIDO | DUPLICATA | CONFLITO, seguidas de ALERTA: ... quando houver.
@@ -21,7 +21,7 @@ from datetime import datetime
 from pathlib import Path
 
 SAUDE_DIR = Path(os.environ.get("SAUDE_DIR", "/srv/hermes/saude"))
-CSV_PADRAO = SAUDE_DIR / "bioimpedancias" / "bioimpedancias.csv"
+CSV_PADRAO = SAUDE_DIR / "bioimpedancia" / "bioimpedancias.csv"
 CHAVE = "data_hora"
 CAMPOS_DUP = ("peso_kg", "pgc_percentual", "massa_muscular_esqueletica_kg")
 
@@ -33,13 +33,22 @@ def num(v):
         return None
 
 
+def data_valida(s):
+    """Aceita 'YYYY-MM-DD HH:MM' ou só 'YYYY-MM-DD' (hora não registrada; nunca inventar hora)."""
+    for f in ("%Y-%m-%d %H:%M", "%Y-%m-%d"):
+        try:
+            datetime.strptime(s, f)
+            return True
+        except ValueError:
+            pass
+    return False
+
+
 def checar(r):
     """Retorna lista de alertas de consistência de uma linha."""
     al = []
-    try:
-        datetime.strptime(r.get(CHAVE, ""), "%Y-%m-%d %H:%M")
-    except ValueError:
-        al.append(f"data_hora fora do formato YYYY-MM-DD HH:MM: {r.get(CHAVE)!r}")
+    if not data_valida(r.get(CHAVE, "")):
+        al.append(f"data_hora fora do formato YYYY-MM-DD HH:MM (ou YYYY-MM-DD sem hora): {r.get(CHAVE)!r}")
     peso, mg = num(r.get("peso_kg")), num(r.get("massa_gordura_kg"))
     comp = [num(r.get(c)) for c in ("agua_corporal_total_l", "proteina_kg", "minerais_kg")]
     if peso and mg is not None and None not in comp:

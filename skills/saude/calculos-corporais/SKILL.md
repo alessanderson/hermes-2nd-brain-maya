@@ -7,14 +7,14 @@ license: MIT
 metadata:
   hermes:
     tags: [calculo, gordura, tmb, tdee, us-navy, katch-mcardle, pessoal]
-    related_skills: [checkin-semanal, composicao-corporal-analise, plano-alimentar, receitas]
+    related_skills: [biometric-tracking, nutrition-planning, nutricionista-pessoal]
 ---
 
 # Cálculos corporais
 
 ## Overview
 
-Ferramenta de cálculo. **Nunca calcular de cabeça:** sempre rodar o script desta skill. Regra de fonte de verdade (InBody × Marinha, qual TMB usar): ver `/srv/hermes/saude/README.md`, item 7.
+Ferramenta de cálculo. **Nunca calcular de cabeça:** sempre rodar o script desta skill. Calcular só quando pedido ou necessário à resposta; não recalcular nada automaticamente. Regra de fonte (InBody × Marinha, qual TMB usar): `/srv/hermes/saude/bioimpedancia/README.md`, regras 6 e 7.
 
 ## When to Use
 

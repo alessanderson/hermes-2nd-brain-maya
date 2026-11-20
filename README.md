@@ -1,45 +1,56 @@
 # Segundo Cérebro — Maya (assistente pessoal)
 
-> Repositório **exclusivamente pessoal**, operado pela **Maya** (Hermes Agent) em um computador dedicado.
-> Tudo o que é de trabalho (Funpresp, coordenação de infraestrutura, equipe, contratos, fornecedores)
-> fica com a **Julia**, em outro repositório e outro computador. Os dois não compartilham arquivos.
+> Repositório **exclusivamente pessoal**, operado pela **Maya** (Hermes Agent) em um computador dedicado, em `/srv/hermes`.
+> Tudo o que é de trabalho (Funpresp, coordenação, equipe, contratos, fornecedores) é da **Julia**, em outro
+> repositório e outro computador. A Maya encaminha esses assuntos à Julia pelo grupo Telegram Hermes, com
+> autorização e dados mínimos (protocolo em `base/FLUXOS.md`), e nunca envia dados de saúde a ela.
 
-## Escopo
+## Como a Maya funciona
 
-| A Maya cuida | A Maya não trata (é da Julia) |
-|---|---|
-| Saúde, composição corporal, nutrição, treino, exames | Funpresp, cargo de coordenador, equipe, terceirizados |
-| Estudos e cursos pessoais | Contratos, fornecedores, fiscalização, tarefas TAR-### |
-| Futuras áreas pessoais (finanças, casa, viagens…) | Capacitação ligada ao cargo |
-
-Se o assunto for de trabalho, a Maya só responde que isso é com a Julia.
+1. **Persona:** `SOUL.md` (no Hermes, `/home/maya/.hermes/SOUL.md` é um link para `/srv/hermes/SOUL.md`).
+2. **Entrada:** na primeira tarefa da sessão, lê `base/INICIO.md` e `base/REGRAS-SEGURANCA.md`.
+3. **Navegação:** `base/MAPA-MEMORIAS.md` é o **único** catálogo de rotas (fontes e skills). Lê só o necessário.
+4. **Execução:** `base/FLUXOS.md` antes de gravar, gerar artefatos ou falar com a Julia.
+5. **Princípios:** analisar não autoriza gravar; nada de diagnóstico; não inventar dados; cada informação tem uma fonte principal.
 
 ## Estrutura
 
 ```
 /srv/hermes/
-├── README.md          ← este arquivo (texto claro)
-├── CONTEXTO.md        ← quem é o usuário como pessoa e limites da Maya        [criptografado]
-├── MEMORY.md          ← cópia versionada da memória do perfil no Hermes        [criptografado]
-├── MAPA.md            ← índice gerado por scripts/atualizar_mapa.py           [criptografado]
-├── saude/             ← dados e regras de saúde; índice em saude/README.md   [criptografado]
-├── estudo/            ← estudos pessoais                                      [criptografado]
-├── skills/saude/      ← 9 skills de saúde (texto claro, sem dado pessoal)
-├── scripts/           ← atualizar_mapa.py, ativar-criptografia.sh (texto claro)
-└── .githooks/         ← trava pre-commit contra vazamento (texto claro)
+├── SOUL.md                 persona da Maya
+├── base/                   entrada, segurança, fluxos, mapa, contexto, objetivos
+├── config/
+│   ├── memorias/           preferências, estado operacional, contextos temáticos, cópia da memória nativa
+│   └── cronjobs/           estado das automações (documentação, não prova de execução)
+├── saude/
+│   ├── PERFIL.md           dados básicos, objetivos, restrições, rotina
+│   ├── bioimpedancia/      série InBody (CSV), dicionário, log, laudos/
+│   ├── checkins/           medidas de fita, US Navy, check-ins (CSV)
+│   ├── exames-laboratoriais/  exames (CSV) e laudos/
+│   └── registros/          registros pessoais por data
+├── estudo/                 estudos pessoais
+├── rascunhos/              temporários (fora do Git)
+├── skills/saude/           13 skills
+└── scripts/                ativar-criptografia.sh
 ```
 
-Áreas novas: criar a pasta na raiz quando houver conteúdo real e incluí-la em `scripts/atualizar_mapa.py`.
-Ela já nasce criptografada (regra padrão do `.gitattributes`).
+## Skills (`skills/saude/`)
+
+| Área | Skills |
+|---|---|
+| Composição corporal | `interpretacao-bioimpedancia` (lê e registra laudos; script `bioimpedancia.py`), `biometric-tracking`, `relatorio-bioimpedancia` (script `gerar_dashboard.py`), `calculos-corporais` (script `calculos.py`) |
+| Nutrição | `nutrition-planning` (refeições, receitas, plano), `nutricionista-pessoal` (check-in e perfil) |
+| Exames | `exames-laboratoriais` |
+| Apoio emocional | `apoio-terapeutico` (roteador), `tcc-reflexao`, `gestalt-dialogo`, `gestalt-experimentos`, `gestalt-integracao`, `preparo-para-terapia` |
 
 ## Criptografia (git-crypt)
 
-- **Padrão: tudo é criptografado.** Só `README.md`, `.gitattributes`, `.gitignore`, `.githooks/`, `scripts/` e `skills/` vão em texto claro.
-- No GitHub, os arquivos protegidos são binários ilegíveis. No servidor da Maya, com a chave, aparecem normais: o agente lê e escreve sem nenhum passo extra.
-- **A chave nunca vai para o GitHub.** Ela fica em `/root/.config/hermes-maya/git-crypt.key` (permissão 600, fora do repositório) e numa cópia offline (gerenciador de senhas).
-- **Trava:** `.githooks/pre-commit` bloqueia commit de arquivo protegido em texto claro e de qualquer chave do git-crypt.
-- **O que o GitHub ainda vê:** nomes de arquivos e pastas, tamanhos, datas e mensagens de commit. Não coloque dado sensível nesses lugares.
-- **Se perder a chave, os dados no GitHub ficam irrecuperáveis.** Guarde a cópia offline.
+- **Tudo é criptografado por padrão.** Em texto claro só ficam `README.md`, `.gitattributes`, `.gitignore`, `.githooks/`, `scripts/` e `skills/`.
+- No GitHub os arquivos protegidos são ilegíveis; no computador da Maya, com a chave, aparecem normais.
+- **A chave nunca vai para o GitHub:** fica em `/root/.config/hermes-maya/git-crypt.key` (permissão 600, fora do repositório) e numa cópia offline.
+- **Trava:** `.githooks/pre-commit` bloqueia arquivo protegido em texto claro e qualquer chave do git-crypt.
+- **O GitHub ainda vê** nomes de arquivos e pastas, tamanhos, datas e mensagens de commit. Não usar nomes de pessoas ou detalhes sensíveis nesses lugares.
+- **Perdeu a chave, perdeu os dados do GitHub.** Guarde a cópia offline.
 
 ## Instalação no computador da Maya (uma vez)
 
@@ -47,40 +58,25 @@ Ela já nasce criptografada (regra padrão do `.gitattributes`).
 sudo apt install git git-crypt python3-venv
 git clone https://github.com/alessanderson/hermes-2nd-brain-maya.git /srv/hermes
 cd /srv/hermes
-
-# copiar os dados pessoais para dentro do clone (saude/, estudo/, MEMORY.md, CONTEXTO.md, MAPA.md)
-# ex.: scp -r usuario@pc:/caminho/hermes-2nd-brain-maya/{saude,estudo,MEMORY.md,CONTEXTO.md,MAPA.md} /srv/hermes/
-
-scripts/ativar-criptografia.sh          # cria a chave, exporta para fora do repo e confere
-base64 -w0 /root/.config/hermes-maya/git-crypt.key   # copie para o gerenciador de senhas
-git commit -m "feat: dados pessoais versionados com git-crypt"
+# copiar o conteúdo pessoal para dentro do clone:
+#   SOUL.md, base/, config/, saude/, estudo/, rascunhos/README.md
+scripts/ativar-criptografia.sh                         # cria a chave, exporta para fora do repo e confere
+base64 -w0 /root/.config/hermes-maya/git-crypt.key     # copiar para o gerenciador de senhas
+git commit -m "feat: conteúdo pessoal versionado com git-crypt"
 git push
 
 python3 -m venv /srv/hermes/.venv && /srv/hermes/.venv/bin/pip install matplotlib
+ln -sf /srv/hermes/SOUL.md /home/maya/.hermes/SOUL.md
 ```
 
-Depois, configurar o perfil da Maya no Hermes para usar as skills de `/srv/hermes/skills/saude/`
-e carregar a memória com o conteúdo de `MEMORY.md`.
+Depois: configurar o Hermes para enxergar as skills de `/srv/hermes/skills/saude/` e conferir a memória nativa
+(há uma cópia de referência em `config/memorias/backup-memoria-nativa.md`).
 
 ## Outra máquina (ler ou restaurar)
 
 ```bash
 git clone https://github.com/alessanderson/hermes-2nd-brain-maya.git
 cd hermes-2nd-brain-maya
-git-crypt unlock /caminho/da/git-crypt.key   # sem a chave, os arquivos ficam ilegíveis
+git-crypt unlock /caminho/da/git-crypt.key
 git config core.hooksPath .githooks
 ```
-
-## Regras
-
-1. Não inventar: o que o usuário não informou fica como "a preencher".
-2. Dados vêm de documentos ou do usuário; laudos só com dado impresso.
-3. Cálculos sempre por script.
-4. Linguagem de acompanhamento, nunca diagnóstico.
-5. Nunca registrar senhas, tokens ou chaves, nem mesmo criptografados.
-6. Nada de trabalho neste repositório.
-
-## Versionamento
-
-- Repositório privado e independente: `alessanderson/hermes-2nd-brain-maya`, branch `main`.
-- Sem relação de histórico com o repositório da Julia.

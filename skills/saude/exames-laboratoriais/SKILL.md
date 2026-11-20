@@ -1,63 +1,36 @@
 ---
 name: exames-laboratoriais
-description: Use quando o usuário compartilhar exames de sangue ou laboratoriais (PDF, foto ou valores) para registrar na base histórica e analisar sob a ótica nutricional e de performance, comparando com exames anteriores.
-version: 2.0.0
+description: Explica exames de sangue/laboratoriais sob demanda e registra na série quando autorizado.
+version: 3.0.0
 author: Alessanderson
 license: MIT
 metadata:
   hermes:
-    tags: [exames, laboratorio, sangue, marcadores, nutricao, pessoal]
-    related_skills: [plano-alimentar, composicao-corporal-analise]
+    tags: [exames, laboratorio, sangue, marcadores, saude]
+    related_skills: [nutricionista-pessoal, nutrition-planning]
 ---
 
 # Exames laboratoriais
 
-## Overview
+## Quando usar
+O usuário enviou um laudo (PDF, foto) ou digitou valores e quer entender, comparar ou guardar. Não ativar só porque um exame foi mencionado.
 
-Registra exames em `exames-laboratoriais/exames.csv` (formato longo: uma linha por marcador) e analisa do ponto de vista nutricional e de performance. Caminhos e regras de dados em `/srv/hermes/saude/README.md`.
+## Procedimento
+1. **Ler só o necessário ao pedido.** Marcador, valor, unidade e faixa de referência **do próprio laudo** (variam por laboratório e método). Anotação manual fica separada, com a origem; nunca substitui o impresso. Não completar números por plausibilidade.
+2. **Explicar** cada marcador pertinente: resultado × referência do laudo; o que significa para o objetivo do usuário (ótica nutricional e de performance); quando procurar avaliação médica. Considerar contexto (jejum, treino intenso na véspera, suplementos). Creatinina tende a ser mais alta em quem tem mais massa muscular ou usa creatina: considerar antes de alarmar.
+3. **Comparar com exames anteriores só quando pedido**, lendo `/srv/hermes/saude/exames-laboratoriais/exames.csv`. Comparar apenas unidades e métodos compatíveis; diferenças calculadas por ferramenta.
+4. **Gravar só com pedido ou autorização** de conteúdo e destino:
+   - Original em `/srv/hermes/saude/exames-laboratoriais/laudos/AAAA-MM-DD_laboratorio.<ext>`.
+   - Uma linha por marcador em `exames.csv`: `data_coleta` (`YYYY-MM-DD`), `marcador` (nome padronizado, ex.: `vitamina_d_25oh`, `hba1c`, `ldl`), `valor`, `unidade`, `ref_min`, `ref_max`, `ref_texto` (quando a referência não é um intervalo simples), `laboratorio`, `arquivo_laudo`, `status_observacoes`.
+   - Chave `data_coleta + marcador`: igual = duplicata (não grava); diferente = conflito (não grava; perguntar).
+   - Reler as linhas gravadas.
+5. **Ajuste alimentar ou suplementação**, se pedido: informativo, via `nutrition-planning` (referência `estrutura-plano.md`).
 
-**Não é diagnóstico.** Valor alterado ou combinação preocupante → orientar avaliação médica, sem alarmismo.
+## Marcadores de interesse frequentes
+Glicose e HbA1c; lipidograma; hemograma; ferritina e ferro; vitamina D (25-OH); TSH e T4 livre; testosterona total e livre; TGO e TGP; creatinina e TFG; PCR ultrassensível.
 
-## When to Use
+## Segurança
+IA informativa, não profissional habilitado. Não diagnosticar, não prescrever medicamento, suplemento ou dieta terapêutica, não sugerir mudar tratamento. Valor muito alterado ou sintomas: orientar avaliação médica, sem alarmismo; sintomas graves ou agudos: urgência.
 
-- Usuário enviou laudo de exame de sangue/urina ou digitou valores.
-- "Como estão meus exames?", "minha vitamina D melhorou?".
-
-## Workflow
-
-1. **Extrair** só o que está impresso: marcador, valor, unidade e faixa de referência **do próprio laudo** (as faixas variam por laboratório e método). Ignorar anotações à caneta.
-2. **Arquivar** o laudo em `exames-laboratoriais/laudos/AAAA-MM-DD_laboratorio.<ext>`.
-3. **Gravar** no CSV: `data_coleta` (`YYYY-MM-DD`), `marcador` (nome padronizado, ex.: `vitamina_d_25oh`, `hba1c`, `ldl`), `valor`, `unidade`, `ref_min`, `ref_max`, `ref_texto` (quando a referência não é um intervalo simples), `laboratorio`, `arquivo_laudo`, `status_observacoes`. Antes de gravar, conferir se `data_coleta + marcador` já existe: igual → duplicata, diferente → conflito para o usuário decidir.
-4. **Analisar** os marcadores de interesse, para cada um:
-   1. Resultado × referência do laudo.
-   2. Comparação com exames anteriores do CSV (tendência).
-   3. O que significa para o objetivo do usuário.
-   4. Ajuste nutricional ou de suplementação, se pertinente → detalhar via `plano-alimentar`.
-   5. Quando procurar avaliação médica.
-
-## Marcadores de interesse
-
-- Glicose + HbA1c: controle glicêmico.
-- Lipidograma completo: saúde cardiovascular.
-- Hemograma: energia, imunidade, recuperação.
-- Ferritina + ferro: transporte de oxigênio.
-- Vitamina D (25-OH): força, imunidade, humor.
-- TSH + T4 livre: metabolismo.
-- Testosterona total + livre: contexto hormonal da recomposição.
-- TGO + TGP: fígado.
-- Creatinina + TFG: rins (a creatinina tende a ser mais alta em quem tem mais massa muscular ou usa creatina; considerar antes de alarmar).
-- PCR ultrassensível: inflamação.
-
-## Common Pitfalls
-
-1. Usar faixa de referência genérica em vez da do laudo.
-2. Comparar valores em unidades diferentes sem converter.
-3. Diagnosticar ou sugerir medicamento.
-4. Ignorar o contexto (jejum, treino intenso na véspera, suplementos).
-
-## Verification Checklist
-
-- [ ] Todos os marcadores impressos gravados, com unidade e referência do laudo.
-- [ ] Laudo arquivado e caminho no CSV.
-- [ ] Comparação histórica feita quando há exame anterior.
-- [ ] Sem diagnóstico nem prescrição; avaliação médica indicada quando cabível.
+## Verificação
+Só o pedido foi atendido? Faixas do próprio laudo? Unidades compatíveis? Nada gravado sem autorização? Sem diagnóstico nem prescrição?

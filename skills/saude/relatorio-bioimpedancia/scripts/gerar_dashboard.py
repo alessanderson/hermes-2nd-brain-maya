@@ -4,8 +4,8 @@
 Uso:
   gerar_dashboard.py [--csv CAMINHO] [--saida PASTA]
 
-Padrões: CSV em $SAUDE_DIR/bioimpedancias/bioimpedancias.csv e saída em
-$SAUDE_DIR/bioimpedancias/relatorios/ (SAUDE_DIR padrão: /srv/hermes/saude).
+Padrões: CSV em $SAUDE_DIR/bioimpedancia/bioimpedancias.csv e saída em
+$SAUDE_DIR/bioimpedancia/relatorios/ (SAUDE_DIR padrão: /srv/hermes/saude).
 Arquivos: dashboard_<data-do-último-exame>.pdf/.png. Somente leitura do CSV.
 Requer matplotlib.
 """
@@ -59,6 +59,10 @@ MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "
 W, H = 8.5, 12.5  # polegadas
 
 
+def quando(r):
+    return f"{r['_dt']:%d/%m/%Y %H:%M}" if r["_hora"] else f"{r['_dt']:%d/%m/%Y}"
+
+
 def fmt(v, casas):
     return f"{v:.{casas}f}".replace(".", ",") if v is not None else "—"
 
@@ -78,7 +82,10 @@ def carregar(path):
         if r["data_hora"] in vistos:
             continue
         vistos.add(r["data_hora"])
-        r["_dt"] = datetime.strptime(r["data_hora"], "%Y-%m-%d %H:%M")
+        try:
+            r["_dt"], r["_hora"] = datetime.strptime(r["data_hora"], "%Y-%m-%d %H:%M"), True
+        except ValueError:  # exame registrado sem hora: não inventar
+            r["_dt"], r["_hora"] = datetime.strptime(r["data_hora"], "%Y-%m-%d"), False
         unicos.append(r)
     if not unicos:
         raise SystemExit("CSV sem exames")
@@ -125,7 +132,7 @@ def cabecalho(fig, ex, csv_rel):
              fontweight="bold", color="white", va="center")
     card(fig, 0.705, 0.951, 0.28, 0.043, cor="#0b4e8a", borda="#5dade2")
     fig.text(0.72, 0.984, "Período dos exames", fontsize=7, color="#cfe6f7", va="center")
-    p = f"{ex[0]['_dt']:%d/%m/%Y %H:%M}  →  {ex[-1]['_dt']:%d/%m/%Y %H:%M}"
+    p = f"{quando(ex[0])}  →  {quando(ex[-1])}"
     fig.text(0.72, 0.971, p, fontsize=7.2, fontweight="bold", color="white", va="center")
     fig.text(0.72, 0.959, f"{len(ex)} exames únicos", fontsize=7, color="white", va="center")
     fig.text(0.02, 0.934, f"Fonte dos dados: {csv_rel}", fontsize=6.5, color=CINZA, va="center")
@@ -133,7 +140,7 @@ def cabecalho(fig, ex, csv_rel):
 
 def status_atual(fig, ex):
     ult, pri = ex[-1], ex[0]
-    secao(fig, 0.915, f"STATUS ATUAL (último exame em {ult['_dt']:%d/%m/%Y %H:%M})")
+    secao(fig, 0.915, f"STATUS ATUAL (último exame em {quando(ult)})")
     n, x0, gap = len(STATUS_CARDS), 0.02, 0.01
     w = (1 - 2 * x0 - gap * (n - 1)) / n
     y, h = 0.835, 0.065
@@ -179,10 +186,10 @@ def gauge(ax, v, cfg):
 
 def indicadores(fig, ex):
     ult = ex[-1]
-    secao(fig, 0.815, "INDICADORES vs FAIXAS DESEJADAS")
-    for i, (cor, txt) in enumerate([(VERDE, "Dentro da faixa desejada"), (AMARELO, "Acima da faixa desejada"),
-                                    (VERMELHO, "Abaixo da faixa desejada")]):
-        x = 0.47 + i * 0.175
+    secao(fig, 0.815, "INDICADORES vs REFERÊNCIA DO INBODY")
+    for i, (cor, txt) in enumerate([(VERDE, "Dentro da faixa"), (AMARELO, "Acima da faixa"),
+                                    (VERMELHO, "Abaixo da faixa")]):
+        x = 0.535 + i * 0.155
         fig.add_artist(Rectangle((x, 0.811), 0.012, 0.008, transform=fig.transFigure, facecolor=cor))
         fig.text(x + 0.016, 0.815, txt, fontsize=6, color=TXT, va="center")
     n, x0, gap = len(FAIXAS), 0.02, 0.01
@@ -202,11 +209,11 @@ def indicadores(fig, ex):
             st, c = status_faixa(v, cfg)
             fig.text(x + w / 2, y + 0.033, st, fontsize=7, fontweight="bold", color=c, ha="center", va="center")
         d, vis, k = cfg["desejado"], cfg["visual"], cfg["casas"]
-        fig.text(x + w / 2, y + 0.018, f"Desejado: {fmt(d[0], max(k, 1))} – {fmt(d[1], max(k, 1))}",
+        fig.text(x + w / 2, y + 0.018, f"Ref. InBody: {fmt(d[0], max(k, 1))} – {fmt(d[1], max(k, 1))}",
                  fontsize=5.2, color=CINZA, ha="center", va="center")
         fig.text(x + w / 2, y + 0.007, f"Faixa visual: {fmt(vis[0], k)} – {fmt(vis[1], k)}",
                  fontsize=5.2, color=CINZA, ha="center", va="center")
-    fig.text(0.02, 0.642, "ℹ  As faixas desejadas são referências visuais para acompanhamento, não diagnóstico.",
+    fig.text(0.02, 0.642, "ℹ  Faixas de referência impressas pelo InBody (aparelho), não metas pessoais nem diagnóstico. Sem valor = não registrado.",
              fontsize=6.3, color=CINZA, va="center", style="italic")
 
 
@@ -214,26 +221,28 @@ def linha(fig, x, y, w, h, ex, col, titulo, cor, casas):
     card(fig, x, y, w, h)
     fig.text(x + 0.01, y + h - 0.012, titulo, fontsize=7, fontweight="bold", color=cor, va="center")
     ax = fig.add_axes([x + 0.045, y + 0.03, w - 0.058, h - 0.052])
-    pts = [(i, num(r.get(col))) for i, r in enumerate(ex)]
-    pts = [(i, v) for i, v in pts if v is not None]
+    serie = [num(r.get(col)) for r in ex]
+    pts = [(i, v) for i, v in enumerate(serie) if v is not None]
     if pts:
-        xs, ys = zip(*pts)
-        ax.plot(xs, ys, "-o", color=cor, lw=1.4, ms=3.2, mfc="white", mew=1.2, zorder=3)
+        # NaN quebra a linha: exame sem o dado vira lacuna visível, sem interpolação
+        ax.plot(range(len(serie)), [float("nan") if v is None else v for v in serie], "-o", color=cor,
+                lw=1.4, ms=3.2, mfc="white", mew=1.2, zorder=3)
+        ys = [v for _, v in pts]
         lo, hi = min(ys), max(ys)
         pad = max((hi - lo) * 0.35, abs(hi) * 0.03, 10 ** -casas)
         ax.set_ylim(lo - pad * 0.8, hi + pad)
-        for j, (xi, yi) in enumerate(pts):
-            ant = ys[j - 1] if j > 0 else None
-            prox = ys[j + 1] if j < len(ys) - 1 else None
+        for xi, yi in pts:
+            ant = serie[xi - 1] if xi > 0 else None
+            prox = serie[xi + 1] if xi < len(serie) - 1 else None
             vizinhos = [v for v in (ant, prox) if v is not None]
             if vizinhos and all(yi < v for v in vizinhos):
                 off, ha, va = (0, -5), "center", "top"        # vale: rótulo abaixo
             elif ant is not None and prox is not None and ant < yi < prox:
-                off, ha, va = (-3, 3), "right", "bottom"      # subindo: acima à esquerda
+                off, ha, va = (3, -3), "left", "top"          # subindo: abaixo à direita
             elif ant is not None and prox is not None and ant > yi > prox:
                 off, ha, va = (3, 3), "left", "bottom"        # descendo: acima à direita
             else:
-                off, ha, va = (0, 4), "center", "bottom"      # pico, platô ou extremidade
+                off, ha, va = (0, 4), "center", "bottom"      # pico, platô, extremidade ou vizinho sem dado
             ax.annotate(fmt(yi, casas), (xi, yi), textcoords="offset points", xytext=off,
                         ha=ha, va=va, fontsize=4.6, color=TXT)
     n = len(ex)
@@ -283,7 +292,7 @@ def evolucao(fig, ex):
     etiqueta(fig, x0, ys[1] + h + 0.008, "GORDURA E RISCO")
     g("pgc_percentual", x0, ys[1], w3)
     g("nivel_gordura_visceral", x0 + w3 + gap, ys[1], w3)
-    painel(fig, x0 + 2 * (w3 + gap), ys[1], w3, h, "REFERÊNCIAS VISUAIS (valores-alvo)",
+    painel(fig, x0 + 2 * (w3 + gap), ys[1], w3, h, "REFERÊNCIAS DO INBODY",
            ["PGC  ≤ 20%", "Gordura visceral  ≤ 10", "IMC  ≤ 25", "Relação cintura-quadril  ≤ 0,90"])
 
     g("imc", x0, ys[2], w3)
@@ -297,19 +306,19 @@ def evolucao(fig, ex):
     g("pontuacao_inbody", x0, ys[3], w3)
     g("tmb_kcal", x0 + w3 + gap, ys[3], w3)
     painel(fig, x0 + 2 * (w3 + gap), ys[3], w3, h, "ℹ  OBSERVAÇÃO",
-           ["Faixas desejadas são referências", "visuais para acompanhamento,", "não diagnóstico.", "",
-            "Dados vêm do CSV consolidado.", "Pontos com baixa confiança ou", "possível erro: ver status no CSV."])
+           ["Faixas: referência do aparelho,", "não metas pessoais nem diagnóstico.", "",
+            "Dados: CSV de bioimpedância.", "Lacunas = dado não registrado", "(sem interpolação). Qualidade:", "ver status_observacoes no CSV."])
 
 
 def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--csv", type=Path, default=SAUDE_DIR / "bioimpedancias" / "bioimpedancias.csv")
-    p.add_argument("--saida", type=Path, default=SAUDE_DIR / "bioimpedancias" / "relatorios")
+    p.add_argument("--csv", type=Path, default=SAUDE_DIR / "bioimpedancia" / "bioimpedancias.csv")
+    p.add_argument("--saida", type=Path, default=SAUDE_DIR / "bioimpedancia" / "relatorios")
     a = p.parse_args(argv)
     ex = carregar(a.csv)
     plt.rcParams["font.family"] = "DejaVu Sans"
     fig = plt.figure(figsize=(W, H), facecolor="white")
-    cabecalho(fig, ex, "bioimpedancias/bioimpedancias.csv")
+    cabecalho(fig, ex, "saude/bioimpedancia/bioimpedancias.csv")
     status_atual(fig, ex)
     indicadores(fig, ex)
     evolucao(fig, ex)
