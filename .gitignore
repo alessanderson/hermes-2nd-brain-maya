@@ -34,12 +34,3 @@ Thumbs.db
 .vscode/
 .idea/
 
-# >>> dados-sensiveis — bloco TEMPORÁRIO, removido por scripts/ativar-criptografia.sh
-# Impede que qualquer conteúdo pessoal entre no Git antes de a criptografia existir.
-/SOUL.md
-/base/
-/config/
-/saude/
-/estudo/
-/rascunhos/README.md
-# <<< dados-sensiveis
