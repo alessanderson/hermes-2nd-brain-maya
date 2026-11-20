@@ -1,0 +1,14 @@
+# =====================================================================
+# Criptografia (git-crypt) — padrão: TUDO é criptografado.
+# Só o que está listado na segunda seção vai em texto claro para o GitHub.
+# Arquivo novo em qualquer outra pasta já nasce criptografado.
+# =====================================================================
+* filter=git-crypt diff=git-crypt -text
+
+# --- Texto claro (genérico, sem dado pessoal) ---
+.gitattributes  !filter !diff text eol=lf
+.gitignore      !filter !diff text eol=lf
+README.md       !filter !diff text eol=lf
+.githooks/**    !filter !diff text eol=lf
+scripts/**      !filter !diff text=auto eol=lf
+skills/**       !filter !diff text=auto eol=lf

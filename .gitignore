@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Relatórios gerados (podem ser recriados a partir dos dados)
+/saude/bioimpedancias/relatorios/
+
+# Backup local da migração (não versionar)
+/_backup/
+
+# Chaves de criptografia: NUNCA no repositório
+*.key
+*git-crypt*key*
+
+# Sistema/editores
+.DS_Store
+Thumbs.db
+*.swp
+*~
+.vscode/
+.idea/
+
+# >>> dados-sensiveis — bloco TEMPORÁRIO, removido por scripts/ativar-criptografia.sh
+# Impede que dados pessoais entrem no Git antes de a criptografia existir.
+/saude/
+/estudo/
+/MEMORY.md
+/CONTEXTO.md
+/MAPA.md
+# <<< dados-sensiveis

@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+# Trava de segurança do repositório da Maya.
+# Bloqueia o commit se:
+#   1) um arquivo que deveria ir criptografado (atributo filter=git-crypt) estiver em texto claro;
+#   2) uma chave do git-crypt estiver sendo commitada.
+# Ativado por: git config core.hooksPath .githooks  (o script de ativação faz isso)
+set -uo pipefail
+
+gitdir="$(git rev-parse --git-dir)"
+iniciado=0
+[ -d "$gitdir/git-crypt/keys" ] && iniciado=1
+falhas=0
+
+while IFS= read -r -d '' f; do
+  cabecalho="$(git cat-file -p ":$f" 2>/dev/null | head -c 12 | tr -d '\0')"
+  local_hdr=""
+  [ -f "$f" ] && local_hdr="$(head -c 12 -- "$f" 2>/dev/null | tr -d '\0')"
+  if [ "$cabecalho" = "GITCRYPTKEY" ] || [ "$local_hdr" = "GITCRYPTKEY" ]; then
+    echo "BLOQUEADO: '$f' é uma chave do git-crypt. Chaves nunca vão para o repositório." >&2
+    falhas=1; continue
+  fi
+  filtro="$(git check-attr filter -- "$f" | sed 's/.*: filter: //')"
+  if [ "$filtro" = "git-crypt" ]; then
+    if [ "$iniciado" -eq 0 ]; then
+      echo "BLOQUEADO: '$f' deve ir criptografado, mas o git-crypt não foi iniciado neste clone." >&2
+      echo "           Rode scripts/ativar-criptografia.sh (no servidor da Maya) ou 'git-crypt unlock <chave>'." >&2
+      falhas=1
+    elif [ "${cabecalho:0:8}" != "GITCRYPT" ]; then
+      echo "BLOQUEADO: '$f' está em texto claro no stage. Rode: git rm --cached '$f' && git add '$f'" >&2
+      falhas=1
+    fi
+  fi
+done < <(git diff --cached --name-only --diff-filter=ACMR -z)
+
+if [ "$falhas" -ne 0 ]; then
+  echo "Commit cancelado pela trava de criptografia (.githooks/pre-commit)." >&2
+  exit 1
+fi
+exit 0
